@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: voa-news-rag
+  profiles:
+    default: local
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      lettuce:
+        pool:
+          max-active: ${REDIS_POOL_MAX_ACTIVE:8}
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+aws:
+  region: ${AWS_REGION:us-east-1}
+  sqs:
+    crawl-queue: ${CRAWL_QUEUE:voa-crawl-queue}
+    process-queue: ${PROCESS_QUEUE:article-process-queue}
+    crawl-dlq: ${CRAWL_DLQ:voa-crawl-dlq}
+    process-dlq: ${PROCESS_DLQ:article-process-dlq}
+  s3:
+    raw-content-bucket: ${RAW_CONTENT_BUCKET:voa-news-raw}
+
+milvus:
+  uri: ${MILVUS_URI:http://localhost:19530}
+  token: ${MILVUS_TOKEN:}
+  collection: ${MILVUS_COLLECTION:voa_news_chunks}
+
+llm:
+  base-url: ${LLM_BASE_URL}
+  api-key: ${LLM_API_KEY}
+  chat-model: ${LLM_CHAT_MODEL}
+  embedding-model: ${LLM_EMBEDDING_MODEL}
+  request-timeout: ${LLM_REQUEST_TIMEOUT:60s}
+
+crawler:
+  scheduler-enabled: ${CRAWLER_SCHEDULER_ENABLED:false}
+  discovery-cron: ${CRAWLER_DISCOVERY_CRON:0 0/30 * * * *}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
