@@ -35,3 +35,6 @@ llm:
 crawler:
   scheduler-enabled: false
   discovery-cron: "0 0/30 * * * *"
+  max-links-per-run: 20
+  seed-urls:
+    - https://www.voanews.com/

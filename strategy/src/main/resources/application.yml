@@ -50,6 +50,15 @@ llm:
 crawler:
   scheduler-enabled: ${CRAWLER_SCHEDULER_ENABLED:false}
   discovery-cron: ${CRAWLER_DISCOVERY_CRON:0 0/30 * * * *}
+  max-links-per-run: ${CRAWLER_MAX_LINKS_PER_RUN:200}
+  seed-urls:
+    - https://www.voanews.com/
+    - https://www.voanews.com/usa
+    - https://www.voanews.com/africa
+    - https://www.voanews.com/east-asia-pacific
+    - https://www.voanews.com/europe
+    - https://www.voanews.com/middle-east
+    - https://www.voanews.com/south-central-asia
 
 management:
   endpoints:
@@ -59,4 +68,3 @@ management:
   endpoint:
     health:
       show-details: when-authorized
-
