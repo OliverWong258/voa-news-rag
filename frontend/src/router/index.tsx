@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '../components/AppLayout'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { ArticlesPage } from '../pages/ArticlesPage'
 
 export const router = createBrowserRouter([
   {
@@ -10,12 +11,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: (
-          <PlaceholderPage
-            title="新闻列表"
-            description="浏览 VOA 中文新闻，并按日期和类别筛选。"
-          />
-        ),
+        element: <ArticlesPage />,
       },
       {
         path: 'articles/:articleId',
@@ -48,4 +44,3 @@ export const router = createBrowserRouter([
     ],
   },
 ])
-
