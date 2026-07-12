@@ -20,6 +20,8 @@ aws:
     process-queue: test-process-queue
     crawl-dlq: test-crawl-dlq
     process-dlq: test-process-dlq
+    index-queue: test-index-queue
+    index-dlq: test-index-dlq
     visibility-timeout-seconds: 300
     max-receive-count: 5
   s3:
@@ -28,6 +30,10 @@ aws:
 milvus:
   uri: http://localhost:19530
   collection: test_news_chunks
+  embedding-dimension: 4
+  chunk-chars: 100
+  chunk-overlap-chars: 20
+  indexing-max-attempts: 3
 
 llm:
   base-url: http://localhost:11434

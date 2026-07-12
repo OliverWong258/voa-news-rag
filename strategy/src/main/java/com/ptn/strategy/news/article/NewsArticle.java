@@ -25,4 +25,7 @@ public class NewsArticle {
     private String translationError;
     private String translationModel;
     private LocalDateTime translatedAt;
+    private Integer indexingRetryCount;
+    private String indexingError;
+    private LocalDateTime indexedAt;
 }

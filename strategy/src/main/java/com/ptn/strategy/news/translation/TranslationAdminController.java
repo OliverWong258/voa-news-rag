@@ -28,4 +28,16 @@ public class TranslationAdminController {
         }
         return ResponseEntity.accepted().body(Map.of("articleId", articleId, "accepted", true));
     }
+
+    @PostMapping("/{articleId}/reindex")
+    public ResponseEntity<Map<String, Object>> reindex(@PathVariable long articleId) {
+        boolean accepted = adminService.reindex(articleId);
+        if (!accepted) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "articleId", articleId,
+                    "accepted", false,
+                    "message", "Article is not in an index retryable state"));
+        }
+        return ResponseEntity.accepted().body(Map.of("articleId", articleId, "accepted", true));
+    }
 }

@@ -43,7 +43,7 @@ public interface NewsArticleMapper {
             UPDATE news_article
             SET title_zh = #{titleZh}, content_zh = #{contentZh}, summary_zh = #{summaryZh},
                 translation_model = #{model}, translated_at = CURRENT_TIMESTAMP(6),
-                translation_error = NULL, processing_status = 'TRANSLATED'
+                translation_error = NULL, processing_status = 'INDEX_PENDING'
             WHERE id = #{id} AND processing_status = 'TRANSLATING'
             """)
     int markTranslated(
@@ -80,4 +80,52 @@ public interface NewsArticleMapper {
             WHERE id = #{id} AND processing_status = 'CRAWLED'
             """)
     int markTranslationDispatchFailed(@Param("id") long id, @Param("error") String error);
+
+    @Update("""
+            UPDATE news_article SET processing_status = 'INDEX_QUEUED', indexing_error = NULL
+            WHERE id = #{id} AND processing_status = 'INDEX_PENDING'
+            """)
+    int markIndexQueued(@Param("id") long id);
+
+    @Update("""
+            UPDATE news_article SET indexing_error = LEFT(#{error}, 4000)
+            WHERE id = #{id} AND processing_status = 'INDEX_PENDING'
+            """)
+    int markIndexDispatchFailed(@Param("id") long id, @Param("error") String error);
+
+    @Update("""
+            UPDATE news_article SET processing_status = 'INDEXING', indexing_error = NULL
+            WHERE id = #{id}
+              AND processing_status IN ('INDEX_PENDING', 'INDEX_QUEUED', 'INDEX_FAILED')
+              AND indexing_retry_count < #{maxAttempts}
+            """)
+    int claimForIndexing(@Param("id") long id, @Param("maxAttempts") int maxAttempts);
+
+    @Update("""
+            UPDATE news_article
+            SET processing_status = 'INDEXED', indexed_at = CURRENT_TIMESTAMP(6), indexing_error = NULL
+            WHERE id = #{id} AND processing_status = 'INDEXING'
+            """)
+    int markIndexed(@Param("id") long id);
+
+    @Update("""
+            UPDATE news_article
+            SET indexing_retry_count = indexing_retry_count + 1,
+                indexing_error = LEFT(#{error}, 4000),
+                processing_status = CASE
+                    WHEN indexing_retry_count + 1 >= #{maxAttempts}
+                    THEN 'INDEX_DEAD' ELSE 'INDEX_FAILED' END
+            WHERE id = #{id} AND processing_status = 'INDEXING'
+            """)
+    int markIndexingFailed(
+            @Param("id") long id,
+            @Param("error") String error,
+            @Param("maxAttempts") int maxAttempts);
+
+    @Update("""
+            UPDATE news_article
+            SET processing_status = 'INDEX_PENDING', indexing_retry_count = 0, indexing_error = NULL
+            WHERE id = #{id} AND processing_status IN ('INDEX_PENDING', 'INDEX_FAILED', 'INDEX_DEAD')
+            """)
+    int resetIndexing(@Param("id") long id);
 }

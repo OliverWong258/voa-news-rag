@@ -41,6 +41,8 @@ aws:
     process-queue: ${PROCESS_QUEUE:article-process-queue}
     crawl-dlq: ${CRAWL_DLQ:voa-crawl-dlq}
     process-dlq: ${PROCESS_DLQ:article-process-dlq}
+    index-queue: ${INDEX_QUEUE:article-index-queue}
+    index-dlq: ${INDEX_DLQ:article-index-dlq}
     visibility-timeout-seconds: ${SQS_VISIBILITY_TIMEOUT_SECONDS:300}
     max-receive-count: ${SQS_MAX_RECEIVE_COUNT:5}
   s3:
@@ -50,6 +52,10 @@ milvus:
   uri: ${MILVUS_URI:http://localhost:19530}
   token: ${MILVUS_TOKEN:}
   collection: ${MILVUS_COLLECTION:voa_news_chunks}
+  embedding-dimension: ${EMBEDDING_DIMENSION:768}
+  chunk-chars: ${RAG_CHUNK_CHARS:1200}
+  chunk-overlap-chars: ${RAG_CHUNK_OVERLAP_CHARS:150}
+  indexing-max-attempts: ${INDEXING_MAX_ATTEMPTS:5}
 
 llm:
   base-url: ${LLM_BASE_URL}

@@ -60,7 +60,9 @@ class VoaCrawlConsumerTest {
 
         AwsProperties properties = new AwsProperties(
                 "us-east-1",
-                new AwsProperties.Sqs("crawl", "process", "crawl-dlq", "process-dlq", 300, 5),
+                new AwsProperties.Sqs(
+                        "crawl", "process", "crawl-dlq", "process-dlq",
+                        "index", "index-dlq", 300, 5),
                 new AwsProperties.S3("raw-bucket"));
         VoaCrawlConsumer consumer = new VoaCrawlConsumer(
                 pageFetcher,

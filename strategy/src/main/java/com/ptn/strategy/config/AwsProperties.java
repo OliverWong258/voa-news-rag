@@ -15,6 +15,8 @@ public record AwsProperties(@NotBlank String region, @Valid Sqs sqs, @Valid S3 s
             @NotBlank String processQueue,
             @NotBlank String crawlDlq,
             @NotBlank String processDlq,
+            @NotBlank String indexQueue,
+            @NotBlank String indexDlq,
             @Positive int visibilityTimeoutSeconds,
             @Positive int maxReceiveCount) {
     }

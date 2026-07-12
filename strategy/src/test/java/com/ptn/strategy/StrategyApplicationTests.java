@@ -7,6 +7,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.ptn.strategy.news.task.CrawlTaskMapper;
 import com.ptn.strategy.news.article.NewsArticleMapper;
 import io.awspring.cloud.sqs.operations.SqsTemplate;
+import com.ptn.strategy.news.indexing.ArticleChunkMapper;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -20,6 +21,9 @@ class StrategyApplicationTests {
 
 	@MockitoBean
 	private SqsTemplate sqsTemplate;
+
+	@MockitoBean
+	private ArticleChunkMapper articleChunkMapper;
 
 	@Test
 	void contextLoads() {

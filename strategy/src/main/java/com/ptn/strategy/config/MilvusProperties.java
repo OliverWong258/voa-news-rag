@@ -1,6 +1,7 @@
 package com.ptn.strategy.config;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -9,5 +10,9 @@ import org.springframework.validation.annotation.Validated;
 public record MilvusProperties(
         @NotBlank String uri,
         String token,
-        @NotBlank String collection) {
+        @NotBlank String collection,
+        @Positive int embeddingDimension,
+        @Positive int chunkChars,
+        @Positive int chunkOverlapChars,
+        @Positive int indexingMaxAttempts) {
 }
