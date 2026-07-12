@@ -7,6 +7,7 @@ public record RagSource(
         long articleId,
         long chunkId,
         String title,
+        String category,
         String url,
         Instant publishedAt,
         double score,

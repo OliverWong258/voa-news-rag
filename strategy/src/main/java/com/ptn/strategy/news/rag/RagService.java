@@ -42,7 +42,8 @@ public class RagService {
 
     PreparedRag prepare(RagQuestionRequest request) {
         NewsSearchResponse search = searchService.search(new NewsSearchRequest(
-                request.question(), request.topK(), request.startDate(), request.endDate()));
+                request.question(), request.topK(), request.category(),
+                request.startDate(), request.endDate()));
         if (search.hits().isEmpty()) {
             return new PreparedRag(request.question().trim(), "", List.of());
         }
@@ -60,7 +61,8 @@ public class RagService {
             int citation = sources.size() + 1;
             String excerpt = sanitize(hit.excerpt());
             String blockPrefix = "<source id=\"" + citation + "\">\n标题："
-                    + sanitize(hit.title()) + "\nURL：" + sanitize(hit.sourceUrl()) + "\n内容：";
+                    + sanitize(hit.title()) + "\n类别：" + sanitize(hit.category())
+                    + "\nURL：" + sanitize(hit.sourceUrl()) + "\n内容：";
             String blockSuffix = "\n</source>\n\n";
             int available = maxChars - context.length() - blockPrefix.length() - blockSuffix.length();
             if (available <= 0) {
@@ -75,6 +77,7 @@ public class RagService {
                     hit.articleId(),
                     hit.chunkId(),
                     hit.title(),
+                    hit.category(),
                     hit.sourceUrl(),
                     hit.publishedAt(),
                     hit.score(),

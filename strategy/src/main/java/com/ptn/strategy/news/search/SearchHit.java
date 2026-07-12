@@ -10,6 +10,7 @@ public record SearchHit(
         double score,
         String title,
         String excerpt,
+        String category,
         String sourceUrl,
         Instant publishedAt) {
 }

@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
 
 import com.ptn.strategy.config.LlmProperties;
 import com.ptn.strategy.config.MilvusProperties;
@@ -40,6 +41,7 @@ class ArticleIndexingServiceTest {
         article.setTitleZh("中文标题");
         article.setContentZh("这是用于向量索引的中文新闻正文。");
         article.setContentEn("English article body.");
+        article.setCategory("Politics");
         article.setCanonicalUrl("https://www.voanews.com/a/story/123.html");
 
         ArticleChunk persisted = new ArticleChunk();
@@ -57,7 +59,9 @@ class ArticleIndexingServiceTest {
         int indexed = service.index(article, () -> { });
 
         assertThat(indexed).isEqualTo(1);
-        verify(vectorStore).upsert(any(VectorDocument.class));
+        ArgumentCaptor<VectorDocument> documentCaptor = ArgumentCaptor.forClass(VectorDocument.class);
+        verify(vectorStore).upsert(documentCaptor.capture());
+        assertThat(documentCaptor.getValue().category()).isEqualTo("Politics");
         verify(mapper).markIndexed(11L, "chunk-11", "embed");
     }
 }

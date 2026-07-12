@@ -21,10 +21,11 @@ public class SearchController {
     public NewsSearchResponse search(
             @RequestParam("q") String query,
             @RequestParam(required = false) Integer topK,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                     LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                     LocalDate endDate) {
-        return searchService.search(new NewsSearchRequest(query, topK, startDate, endDate));
+        return searchService.search(new NewsSearchRequest(query, topK, category, startDate, endDate));
     }
 }

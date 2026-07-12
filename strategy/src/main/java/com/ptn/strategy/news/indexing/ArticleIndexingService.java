@@ -73,6 +73,7 @@ public class ArticleIndexingService {
                         chunk.getChunkIndex(),
                         article.getTitleZh(),
                         chunk.getContentZh(),
+                        article.getCategory(),
                         article.getCanonicalUrl(),
                         article.getPublishedAt(),
                         chunk.getContentHash(),

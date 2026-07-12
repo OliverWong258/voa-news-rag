@@ -53,6 +53,7 @@ public class MilvusVectorStore implements VectorStore {
         entity.addProperty("chunk_index", document.chunkIndex());
         entity.addProperty("title_zh", truncate(document.titleZh(), 4096));
         entity.addProperty("content_zh", truncate(document.contentZh(), 8192));
+        entity.addProperty("category", truncate(document.category(), 128));
         entity.addProperty("source_url", truncate(document.sourceUrl(), 4096));
         entity.addProperty("published_at", document.publishedAt() == null
                 ? 0L
@@ -77,10 +78,10 @@ public class MilvusVectorStore implements VectorStore {
                 .annsField("embedding")
                 .metricType(IndexParam.MetricType.COSINE)
                 .topK(query.topK())
-                .filter(dateFilter(query))
+                .filter(metadataFilter(query))
                 .outputFields(List.of(
                         "article_id", "chunk_id", "chunk_index", "title_zh", "content_zh",
-                        "source_url", "published_at", "content_hash"))
+                        "category", "source_url", "published_at", "content_hash"))
                 .data(List.of(new FloatVec(query.embedding())))
                 .build();
         SearchResp response = client().search(request);
@@ -100,14 +101,18 @@ public class MilvusVectorStore implements VectorStore {
                     result.getScore() == null ? 0 : result.getScore(),
                     stringValue(entity.get("title_zh")),
                     stringValue(entity.get("content_zh")),
+                    stringValue(entity.get("category")),
                     stringValue(entity.get("source_url")),
                     publishedAt <= 0 ? null : Instant.ofEpochMilli(publishedAt)));
         }
         return List.copyOf(hits);
     }
 
-    private String dateFilter(VectorSearchQuery query) {
+    private String metadataFilter(VectorSearchQuery query) {
         List<String> conditions = new ArrayList<>();
+        if (query.category() != null && !query.category().isBlank()) {
+            conditions.add("category == \"" + escapeFilterString(query.category().trim()) + "\"");
+        }
         if (query.publishedFromEpochMillis() != null) {
             conditions.add("published_at >= " + query.publishedFromEpochMillis());
         }
@@ -115,6 +120,10 @@ public class MilvusVectorStore implements VectorStore {
             conditions.add("published_at <= " + query.publishedToEpochMillis());
         }
         return String.join(" and ", conditions);
+    }
+
+    private String escapeFilterString(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private long longValue(Object value) {
@@ -145,6 +154,7 @@ public class MilvusVectorStore implements VectorStore {
             schema.addField(field("chunk_index", DataType.Int64, false, null, null));
             schema.addField(field("title_zh", DataType.VarChar, false, 4096, null));
             schema.addField(field("content_zh", DataType.VarChar, false, 8192, null));
+            schema.addField(field("category", DataType.VarChar, false, 128, null));
             schema.addField(field("source_url", DataType.VarChar, false, 4096, null));
             schema.addField(field("published_at", DataType.Int64, false, null, null));
             schema.addField(field("content_hash", DataType.VarChar, false, 64, null));

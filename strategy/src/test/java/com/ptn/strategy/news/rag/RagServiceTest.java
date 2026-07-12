@@ -30,30 +30,33 @@ class RagServiceTest {
         SemanticSearchService search = mock(SemanticSearchService.class);
         LlmClient llm = mock(LlmClient.class);
         SearchHit hit = new SearchHit(
-                "chunk-1", 10, 20, 0, 0.88, "新闻标题", "新闻证据片段",
+                "chunk-1", 10, 20, 0, 0.88, "新闻标题", "新闻证据片段", "Politics",
                 "https://www.voanews.com/a/story/1.html", Instant.parse("2026-07-10T00:00:00Z"));
-        when(search.search(new NewsSearchRequest("发生了什么？", 5, null, null)))
+        when(search.search(new NewsSearchRequest("发生了什么？", 5, "Politics", null, null)))
                 .thenReturn(new NewsSearchResponse("发生了什么？", 1, List.of(hit)));
         when(llm.answerWithSources(eq("发生了什么？"), contains("新闻证据片段")))
                 .thenReturn("根据报道，事件已经发生。[1]");
 
         RagAnswerResponse response = new RagService(search, llm, properties)
-                .answer(new RagQuestionRequest("发生了什么？", 5, null, null));
+                .answer(new RagQuestionRequest("发生了什么？", 5, "Politics", null, null));
 
         assertThat(response.grounded()).isTrue();
         assertThat(response.answer()).contains("[1]");
-        assertThat(response.sources()).singleElement().extracting(RagSource::citation).isEqualTo(1);
+        assertThat(response.sources()).singleElement().satisfies(source -> {
+            assertThat(source.citation()).isEqualTo(1);
+            assertThat(source.category()).isEqualTo("Politics");
+        });
     }
 
     @Test
     void refusesWithoutCallingLlmWhenThereIsNoEvidence() {
         SemanticSearchService search = mock(SemanticSearchService.class);
         LlmClient llm = mock(LlmClient.class);
-        when(search.search(new NewsSearchRequest("未知问题", null, null, null)))
+        when(search.search(new NewsSearchRequest("未知问题", null, null, null, null)))
                 .thenReturn(new NewsSearchResponse("未知问题", 0, List.of()));
 
         RagAnswerResponse response = new RagService(search, llm, properties)
-                .answer(new RagQuestionRequest("未知问题", null, null, null));
+                .answer(new RagQuestionRequest("未知问题", null, null, null, null));
 
         assertThat(response.grounded()).isFalse();
         assertThat(response.sources()).isEmpty();

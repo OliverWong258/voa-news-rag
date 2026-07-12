@@ -42,12 +42,14 @@ public class SemanticSearchService {
         if (topK < 1 || topK > properties.maxTopK()) {
             throw new IllegalArgumentException("topK must be between 1 and " + properties.maxTopK());
         }
+        String category = normalizeCategory(request.category());
 
         List<Float> queryVector = embeddingService.embed(contentHasher.sha256(query), query);
         int candidateCount = Math.min(properties.maxTopK(), Math.max(topK, topK * 2));
         List<SearchHit> hits = vectorStore.search(new VectorSearchQuery(
                         queryVector,
                         candidateCount,
+                        category,
                         startEpoch(request.startDate()),
                         endEpoch(request.endDate())))
                 .stream()
@@ -59,6 +61,17 @@ public class SemanticSearchService {
 
     private Long startEpoch(LocalDate date) {
         return date == null ? null : date.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
+    }
+
+    private String normalizeCategory(String category) {
+        if (category == null || category.isBlank()) {
+            return null;
+        }
+        String normalized = category.trim();
+        if (normalized.length() > 128) {
+            throw new IllegalArgumentException("category must not exceed 128 characters");
+        }
+        return normalized;
     }
 
     private Long endEpoch(LocalDate date) {

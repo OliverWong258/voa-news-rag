@@ -10,6 +10,7 @@ public record VectorDocument(
         int chunkIndex,
         String titleZh,
         String contentZh,
+        String category,
         String sourceUrl,
         LocalDateTime publishedAt,
         String contentHash,
