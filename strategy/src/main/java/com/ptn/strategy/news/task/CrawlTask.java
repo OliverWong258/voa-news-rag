@@ -14,6 +14,7 @@ public class CrawlTask {
     private Integer maxRetries;
     private String workerId;
     private String errorMessage;
+    private String rawS3Key;
     private LocalDateTime nextRetryAt;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;

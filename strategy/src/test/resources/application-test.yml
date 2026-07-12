@@ -5,6 +5,8 @@ spring:
       - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
   cloud:
     aws:
+      sqs:
+        enabled: false
       region:
         static: us-east-1
       credentials:
