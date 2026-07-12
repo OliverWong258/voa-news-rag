@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class RagService {
 
-    private static final String NO_EVIDENCE_ANSWER = "当前新闻库中没有足够的相关证据来回答这个问题。";
+    static final String NO_EVIDENCE_ANSWER = "当前新闻库中没有足够的相关证据来回答这个问题。";
 
     private final SemanticSearchService searchService;
     private final LlmClient llmClient;
@@ -31,19 +31,24 @@ public class RagService {
     }
 
     public RagAnswerResponse answer(RagQuestionRequest request) {
-        NewsSearchResponse search = searchService.search(new NewsSearchRequest(
-                request.question(), request.topK(), request.startDate(), request.endDate()));
-        if (search.hits().isEmpty()) {
-            return new RagAnswerResponse(NO_EVIDENCE_ANSWER, false, List.of());
-        }
-
-        Context context = buildContext(search.hits());
-        if (context.sources().isEmpty()) {
+        PreparedRag prepared = prepare(request);
+        if (prepared.sources().isEmpty()) {
             return new RagAnswerResponse(NO_EVIDENCE_ANSWER, false, List.of());
         }
         String answer = withRetry(() -> llmClient.answerWithSources(
-                request.question().trim(), context.text()));
-        return new RagAnswerResponse(answer, true, context.sources());
+                prepared.question(), prepared.context()));
+        return new RagAnswerResponse(answer, true, prepared.sources());
+    }
+
+    PreparedRag prepare(RagQuestionRequest request) {
+        NewsSearchResponse search = searchService.search(new NewsSearchRequest(
+                request.question(), request.topK(), request.startDate(), request.endDate()));
+        if (search.hits().isEmpty()) {
+            return new PreparedRag(request.question().trim(), "", List.of());
+        }
+
+        Context context = buildContext(search.hits());
+        return new PreparedRag(request.question().trim(), context.text(), context.sources());
     }
 
     private Context buildContext(List<SearchHit> hits) {
@@ -97,5 +102,8 @@ public class RagService {
     }
 
     private record Context(String text, List<RagSource> sources) {
+    }
+
+    record PreparedRag(String question, String context, List<RagSource> sources) {
     }
 }
