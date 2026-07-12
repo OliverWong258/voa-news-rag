@@ -16,6 +16,7 @@ import com.ptn.strategy.news.task.CrawlTask;
 import com.ptn.strategy.news.task.CrawlTaskMapper;
 import com.ptn.strategy.news.task.CrawlTaskMessage;
 import io.awspring.cloud.sqs.listener.Visibility;
+import io.awspring.cloud.sqs.operations.SqsTemplate;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.SetOperations;
@@ -34,6 +35,7 @@ class VoaCrawlConsumerTest {
         NewsArticleMapper articleMapper = mock(NewsArticleMapper.class);
         CrawlTaskMapper taskMapper = mock(CrawlTaskMapper.class);
         Visibility visibility = mock(Visibility.class);
+        SqsTemplate sqsTemplate = mock(SqsTemplate.class);
 
         CrawlTask task = new CrawlTask();
         task.setId(42L);
@@ -50,7 +52,11 @@ class VoaCrawlConsumerTest {
                 "Title", "A sufficiently complete article body.", "VOA", LocalDateTime.now()));
         when(redis.opsForSet()).thenReturn(setOperations);
         when(setOperations.add(anyString(), anyString())).thenReturn(1L);
-        when(articleMapper.insertIfAbsent(any())).thenReturn(1);
+        when(articleMapper.insertIfAbsent(any())).thenAnswer(invocation -> {
+            com.ptn.strategy.news.article.NewsArticle article = invocation.getArgument(0);
+            article.setId(99L);
+            return 1;
+        });
 
         AwsProperties properties = new AwsProperties(
                 "us-east-1",
@@ -64,7 +70,8 @@ class VoaCrawlConsumerTest {
                 redis,
                 articleMapper,
                 taskMapper,
-                properties);
+                properties,
+                sqsTemplate);
 
         consumer.consume(message, visibility);
 

@@ -35,6 +35,9 @@ llm:
   chat-model: test-chat
   embedding-model: test-embedding
   request-timeout: 5s
+  max-attempts: 3
+  translation-chunk-chars: 1000
+  summary-source-chars: 2000
 
 crawler:
   scheduler-enabled: false

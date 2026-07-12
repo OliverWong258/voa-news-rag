@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import com.ptn.strategy.config.AwsProperties;
+import com.ptn.strategy.news.translation.ArticleProcessMessage;
+import io.awspring.cloud.sqs.operations.SqsTemplate;
 
 @Slf4j
 @Component
@@ -34,6 +36,7 @@ public class VoaCrawlConsumer {
     private final NewsArticleMapper newsArticleMapper;
     private final CrawlTaskMapper crawlTaskMapper;
     private final AwsProperties awsProperties;
+    private final SqsTemplate sqsTemplate;
     private final String workerId = resolveWorkerId();
 
     public VoaCrawlConsumer(
@@ -44,7 +47,8 @@ public class VoaCrawlConsumer {
             StringRedisTemplate redisTemplate,
             NewsArticleMapper newsArticleMapper,
             CrawlTaskMapper crawlTaskMapper,
-            AwsProperties awsProperties) {
+            AwsProperties awsProperties,
+            SqsTemplate sqsTemplate) {
         this.pageFetcher = pageFetcher;
         this.rawHtmlStorage = rawHtmlStorage;
         this.articleParser = articleParser;
@@ -53,6 +57,7 @@ public class VoaCrawlConsumer {
         this.newsArticleMapper = newsArticleMapper;
         this.crawlTaskMapper = crawlTaskMapper;
         this.awsProperties = awsProperties;
+        this.sqsTemplate = sqsTemplate;
     }
 
     @SqsListener(
@@ -87,6 +92,8 @@ public class VoaCrawlConsumer {
 
             Long hashAdded = redisTemplate.opsForSet().add(CONTENT_HASHES_KEY, contentHash);
             if (hashAdded == null || hashAdded == 0) {
+                NewsArticle existing = newsArticleMapper.findByContentHash(contentHash);
+                dispatchForTranslationIfNeeded(existing);
                 crawlTaskMapper.markCrawled(message.taskId());
                 log.info("Skipped duplicate VOA content for task {}", message.taskId());
                 return;
@@ -95,6 +102,16 @@ public class VoaCrawlConsumer {
             try {
                 NewsArticle article = toNewsArticle(message, parsed, contentHash, rawS3Key);
                 int inserted = newsArticleMapper.insertIfAbsent(article);
+                if (inserted == 0) {
+                    article = newsArticleMapper.findByCanonicalUrl(message.canonicalUrl());
+                    if (article == null) {
+                        article = newsArticleMapper.findByContentHash(contentHash);
+                    }
+                }
+                if (article == null || article.getId() == null) {
+                    throw new IllegalStateException("Unable to resolve persisted article for task " + message.taskId());
+                }
+                dispatchForTranslationIfNeeded(article);
                 crawlTaskMapper.markCrawled(message.taskId());
                 log.info("VOA crawl task {} completed; article inserted={}", message.taskId(), inserted == 1);
             } catch (RuntimeException exception) {
@@ -105,6 +122,18 @@ public class VoaCrawlConsumer {
             crawlTaskMapper.markFailed(message.taskId(), errorMessage(exception));
             log.error("VOA crawl task {} failed", message.taskId(), exception);
             throw exception;
+        }
+    }
+
+    private void dispatchForTranslationIfNeeded(NewsArticle article) {
+        if (article == null || article.getId() == null) {
+            return;
+        }
+        String status = article.getProcessingStatus();
+        if (status == null || "CRAWLED".equals(status) || "TRANSLATION_FAILED".equals(status)) {
+            sqsTemplate.send(to -> to
+                    .queue(awsProperties.sqs().processQueue())
+                    .payload(new ArticleProcessMessage(article.getId())));
         }
     }
 

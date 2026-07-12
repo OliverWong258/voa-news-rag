@@ -57,6 +57,9 @@ llm:
   chat-model: ${LLM_CHAT_MODEL}
   embedding-model: ${LLM_EMBEDDING_MODEL}
   request-timeout: ${LLM_REQUEST_TIMEOUT:60s}
+  max-attempts: ${LLM_MAX_ATTEMPTS:3}
+  translation-chunk-chars: ${LLM_TRANSLATION_CHUNK_CHARS:5000}
+  summary-source-chars: ${LLM_SUMMARY_SOURCE_CHARS:12000}
 
 crawler:
   scheduler-enabled: ${CRAWLER_SCHEDULER_ENABLED:false}

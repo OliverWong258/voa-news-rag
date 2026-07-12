@@ -11,11 +11,18 @@ public class NewsArticle {
     private String url;
     private String canonicalUrl;
     private String titleEn;
+    private String titleZh;
     private String contentEn;
+    private String contentZh;
+    private String summaryZh;
     private String author;
     private LocalDateTime publishedAt;
     private String contentHash;
     private String language;
     private String rawS3Key;
     private String processingStatus;
+    private Integer translationRetryCount;
+    private String translationError;
+    private String translationModel;
+    private LocalDateTime translatedAt;
 }

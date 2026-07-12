@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Positive;
 
 @Validated
 @ConfigurationProperties(prefix = "llm")
@@ -13,5 +14,8 @@ public record LlmProperties(
         @NotBlank String apiKey,
         @NotBlank String chatModel,
         @NotBlank String embeddingModel,
-        @NotNull Duration requestTimeout) {
+        @NotNull Duration requestTimeout,
+        @Positive int maxAttempts,
+        @Positive int translationChunkChars,
+        @Positive int summarySourceChars) {
 }
