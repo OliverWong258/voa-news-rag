@@ -16,6 +16,14 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.stereotype.Component;
+import com.ptn.strategy.news.search.SearchHit;
+import com.ptn.strategy.news.search.VectorSearchQuery;
+import io.milvus.v2.service.vector.request.SearchReq;
+import io.milvus.v2.service.vector.request.data.FloatVec;
+import io.milvus.v2.service.vector.response.SearchResp;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Map;
 
 @Component
 public class MilvusVectorStore implements VectorStore {
@@ -56,6 +64,69 @@ public class MilvusVectorStore implements VectorStore {
                 .collectionName(properties.collection())
                 .data(List.of(entity))
                 .build());
+    }
+
+    @Override
+    public List<SearchHit> search(VectorSearchQuery query) {
+        if (query.embedding().size() != properties.embeddingDimension()) {
+            throw new IllegalArgumentException("Query embedding dimension does not match Milvus collection");
+        }
+        ensureCollection();
+        SearchReq request = SearchReq.builder()
+                .collectionName(properties.collection())
+                .annsField("embedding")
+                .metricType(IndexParam.MetricType.COSINE)
+                .topK(query.topK())
+                .filter(dateFilter(query))
+                .outputFields(List.of(
+                        "article_id", "chunk_id", "chunk_index", "title_zh", "content_zh",
+                        "source_url", "published_at", "content_hash"))
+                .data(List.of(new FloatVec(query.embedding())))
+                .build();
+        SearchResp response = client().search(request);
+        if (response.getSearchResults().isEmpty()) {
+            return List.of();
+        }
+
+        List<SearchHit> hits = new ArrayList<>();
+        for (SearchResp.SearchResult result : response.getSearchResults().get(0)) {
+            Map<String, Object> entity = result.getEntity();
+            long publishedAt = longValue(entity.get("published_at"));
+            hits.add(new SearchHit(
+                    result.getPrimaryKey(),
+                    longValue(entity.get("article_id")),
+                    longValue(entity.get("chunk_id")),
+                    intValue(entity.get("chunk_index")),
+                    result.getScore() == null ? 0 : result.getScore(),
+                    stringValue(entity.get("title_zh")),
+                    stringValue(entity.get("content_zh")),
+                    stringValue(entity.get("source_url")),
+                    publishedAt <= 0 ? null : Instant.ofEpochMilli(publishedAt)));
+        }
+        return List.copyOf(hits);
+    }
+
+    private String dateFilter(VectorSearchQuery query) {
+        List<String> conditions = new ArrayList<>();
+        if (query.publishedFromEpochMillis() != null) {
+            conditions.add("published_at >= " + query.publishedFromEpochMillis());
+        }
+        if (query.publishedToEpochMillis() != null) {
+            conditions.add("published_at <= " + query.publishedToEpochMillis());
+        }
+        return String.join(" and ", conditions);
+    }
+
+    private long longValue(Object value) {
+        return value instanceof Number number ? number.longValue() : Long.parseLong(String.valueOf(value));
+    }
+
+    private int intValue(Object value) {
+        return value instanceof Number number ? number.intValue() : Integer.parseInt(String.valueOf(value));
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     private synchronized void ensureCollection() {

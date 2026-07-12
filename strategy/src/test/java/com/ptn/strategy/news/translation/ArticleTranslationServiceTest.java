@@ -16,7 +16,7 @@ class ArticleTranslationServiceTest {
         LlmClient client = mock(LlmClient.class);
         LlmProperties properties = new LlmProperties(
                 "http://localhost:11434", "test", "chat", "embedding",
-                Duration.ofSeconds(5), 3, 20, 100);
+                Duration.ofSeconds(5), 3, 20, 100, 1000);
         ArticleTranslationService service = new ArticleTranslationService(
                 client, new TranslationChunker(), properties);
         NewsArticle article = new NewsArticle();

@@ -17,5 +17,6 @@ public record LlmProperties(
         @NotNull Duration requestTimeout,
         @Positive int maxAttempts,
         @Positive int translationChunkChars,
-        @Positive int summarySourceChars) {
+        @Positive int summarySourceChars,
+        @Positive int ragMaxContextChars) {
 }

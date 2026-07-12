@@ -22,10 +22,10 @@ class ArticleIndexingServiceTest {
         CachingEmbeddingService embeddings = mock(CachingEmbeddingService.class);
         VectorStore vectorStore = mock(VectorStore.class);
         MilvusProperties milvus = new MilvusProperties(
-                "http://localhost:19530", "", "chunks", 4, 100, 20, 3);
+                "http://localhost:19530", "", "chunks", 4, 100, 20, 3, 5, 20, 0.45);
         LlmProperties llm = new LlmProperties(
                 "http://localhost", "key", "chat", "embed",
-                Duration.ofSeconds(5), 3, 100, 200);
+                Duration.ofSeconds(5), 3, 100, 200, 1000);
         ArticleIndexingService service = new ArticleIndexingService(
                 mapper,
                 new SemanticChunker(),

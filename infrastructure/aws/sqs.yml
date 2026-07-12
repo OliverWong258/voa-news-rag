@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SQS queues and dead-letter queues for the VOA news ingestion pipeline
+
+Parameters:
+  CrawlQueueName:
+    Type: String
+    Default: voa-crawl-queue
+  ProcessQueueName:
+    Type: String
+    Default: article-process-queue
+  CrawlDlqName:
+    Type: String
+    Default: voa-crawl-dlq
+  ProcessDlqName:
+    Type: String
+    Default: article-process-dlq
+  IndexQueueName:
+    Type: String
+    Default: article-index-queue
+  IndexDlqName:
+    Type: String
+    Default: article-index-dlq
+  VisibilityTimeoutSeconds:
+    Type: Number
+    Default: 300
+    MinValue: 30
+    MaxValue: 43200
+  MaxReceiveCount:
+    Type: Number
+    Default: 5
+    MinValue: 1
+
+Resources:
+  CrawlDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref CrawlDlqName
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  ProcessDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref ProcessDlqName
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  IndexDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref IndexDlqName
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  CrawlQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref CrawlQueueName
+      VisibilityTimeout: !Ref VisibilityTimeoutSeconds
+      ReceiveMessageWaitTimeSeconds: 20
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt CrawlDeadLetterQueue.Arn
+        maxReceiveCount: !Ref MaxReceiveCount
+
+  ProcessQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref ProcessQueueName
+      VisibilityTimeout: !Ref VisibilityTimeoutSeconds
+      ReceiveMessageWaitTimeSeconds: 20
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ProcessDeadLetterQueue.Arn
+        maxReceiveCount: !Ref MaxReceiveCount
+
+  IndexQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref IndexQueueName
+      VisibilityTimeout: !Ref VisibilityTimeoutSeconds
+      ReceiveMessageWaitTimeSeconds: 20
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt IndexDeadLetterQueue.Arn
+        maxReceiveCount: !Ref MaxReceiveCount
+
+Outputs:
+  CrawlQueueUrl:
+    Value: !Ref CrawlQueue
+  CrawlDeadLetterQueueUrl:
+    Value: !Ref CrawlDeadLetterQueue
+  ProcessQueueUrl:
+    Value: !Ref ProcessQueue
+  ProcessDeadLetterQueueUrl:
+    Value: !Ref ProcessDeadLetterQueue
+  IndexQueueUrl:
+    Value: !Ref IndexQueue
+  IndexDeadLetterQueueUrl:
+    Value: !Ref IndexDeadLetterQueue
