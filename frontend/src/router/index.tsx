@@ -3,6 +3,7 @@ import { AppLayout } from '../components/AppLayout'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ArticlesPage } from '../pages/ArticlesPage'
+import { ArticleDetailPage } from '../pages/ArticleDetailPage'
 
 export const router = createBrowserRouter([
   {
@@ -15,12 +16,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'articles/:articleId',
-        element: (
-          <PlaceholderPage
-            title="新闻详情"
-            description="查看新闻译文、来源和发布时间。"
-          />
-        ),
+        element: <ArticleDetailPage />,
       },
       {
         path: 'search',

@@ -5,6 +5,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -19,6 +20,15 @@ public class GlobalExceptionHandler {
     })
     public ResponseEntity<ApiError> handleValidation(Exception exception, HttpServletRequest request) {
         return response(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleResponseStatus(
+            ResponseStatusException exception, HttpServletRequest request) {
+        HttpStatus status = HttpStatus.resolve(exception.getStatusCode().value());
+        HttpStatus resolvedStatus = status == null ? HttpStatus.INTERNAL_SERVER_ERROR : status;
+        String message = exception.getReason() == null ? resolvedStatus.getReasonPhrase() : exception.getReason();
+        return response(resolvedStatus, "HTTP_" + resolvedStatus.value(), message, request);
     }
 
     @ExceptionHandler(Exception.class)
