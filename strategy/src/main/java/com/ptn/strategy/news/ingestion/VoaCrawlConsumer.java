@@ -145,6 +145,7 @@ public class VoaCrawlConsumer {
             CrawlTaskMessage message, ParsedArticle parsed, String contentHash, String rawS3Key) {
         NewsArticle article = new NewsArticle();
         article.setSource("VOA");
+        article.setCategory(parsed.category());
         article.setSourceArticleId(extractArticleId(message.canonicalUrl()));
         article.setUrl(message.url());
         article.setCanonicalUrl(message.canonicalUrl());

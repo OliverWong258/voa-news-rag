@@ -44,6 +44,12 @@ public class VoaArticleParser {
                 text(newsJson, "datePublished"),
                 meta(document, "meta[property=article:published_time]"),
                 attribute(document.selectFirst("time[datetime]"), "datetime"));
+        String category = firstNonBlank(
+                category(newsJson.get("articleSection")),
+                meta(document, "meta[property=article:section]"),
+                meta(document, "meta[name=section]"),
+                elementText(document.selectFirst(
+                        "[data-qa=breadcrumb] a:last-child, .breadcrumbs a:last-child")));
 
         if (title == null) {
             throw new ArticleParsingException("VOA article title was not found: " + url);
@@ -52,7 +58,8 @@ public class VoaArticleParser {
             throw new ArticleParsingException("VOA article body was missing or too short: " + url);
         }
 
-        return new ParsedArticle(title, normalizeContent(content), author, parseDate(published));
+        return new ParsedArticle(
+                title, normalizeContent(content), author, parseDate(published), normalizeCategory(category));
     }
 
     private JsonNode findNewsArticleJson(Document document) {
@@ -161,6 +168,32 @@ public class VoaArticleParser {
             value = value.get(0);
         }
         return value.isObject() ? text(value, field) : null;
+    }
+
+    private String category(JsonNode value) {
+        if (value == null) {
+            return null;
+        }
+        if (value.isTextual()) {
+            return blankToNull(value.asText());
+        }
+        if (value.isArray()) {
+            for (JsonNode item : value) {
+                if (item.isTextual() && blankToNull(item.asText()) != null) {
+                    return item.asText();
+                }
+            }
+        }
+        return null;
+    }
+
+    private String normalizeCategory(String value) {
+        String category = blankToNull(value);
+        if (category == null) {
+            return null;
+        }
+        category = category.replaceAll("\\s+", " ");
+        return category.length() <= 128 ? category : category.substring(0, 128);
     }
 
     private String elementText(Element element) {

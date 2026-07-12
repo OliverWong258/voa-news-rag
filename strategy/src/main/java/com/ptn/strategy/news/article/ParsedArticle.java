@@ -6,5 +6,6 @@ public record ParsedArticle(
         String title,
         String content,
         String author,
-        LocalDateTime publishedAt) {
+        LocalDateTime publishedAt,
+        String category) {
 }

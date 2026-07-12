@@ -6,16 +6,18 @@ import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Mapper
 public interface NewsArticleMapper {
 
     @Insert("""
             INSERT IGNORE INTO news_article
-                (source, source_article_id, url, canonical_url, title_en, content_en, author,
+                (source, category, source_article_id, url, canonical_url, title_en, content_en, author,
                  published_at, content_hash, language, raw_s3_key, processing_status)
             VALUES
-                (#{source}, #{sourceArticleId}, #{url}, #{canonicalUrl}, #{titleEn}, #{contentEn},
+                (#{source}, #{category}, #{sourceArticleId}, #{url}, #{canonicalUrl}, #{titleEn}, #{contentEn},
                  #{author}, #{publishedAt}, #{contentHash}, #{language}, #{rawS3Key}, 'CRAWLED')
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
@@ -29,6 +31,50 @@ public interface NewsArticleMapper {
 
     @Select("SELECT * FROM news_article WHERE content_hash = #{contentHash} LIMIT 1")
     NewsArticle findByContentHash(@Param("contentHash") String contentHash);
+
+    @Select("""
+            <script>
+            SELECT * FROM news_article
+            WHERE processing_status = 'INDEXED'
+            <if test="category != null and category != ''">
+              AND category = #{category}
+            </if>
+            <if test="publishedFrom != null">
+              AND published_at &gt;= #{publishedFrom}
+            </if>
+            <if test="publishedTo != null">
+              AND published_at &lt; #{publishedTo}
+            </if>
+            ORDER BY published_at DESC, id DESC
+            LIMIT #{limit} OFFSET #{offset}
+            </script>
+            """)
+    List<NewsArticle> findPublishedArticles(
+            @Param("category") String category,
+            @Param("publishedFrom") LocalDateTime publishedFrom,
+            @Param("publishedTo") LocalDateTime publishedTo,
+            @Param("offset") long offset,
+            @Param("limit") int limit);
+
+    @Select("""
+            <script>
+            SELECT COUNT(*) FROM news_article
+            WHERE processing_status = 'INDEXED'
+            <if test="category != null and category != ''">
+              AND category = #{category}
+            </if>
+            <if test="publishedFrom != null">
+              AND published_at &gt;= #{publishedFrom}
+            </if>
+            <if test="publishedTo != null">
+              AND published_at &lt; #{publishedTo}
+            </if>
+            </script>
+            """)
+    long countPublishedArticles(
+            @Param("category") String category,
+            @Param("publishedFrom") LocalDateTime publishedFrom,
+            @Param("publishedTo") LocalDateTime publishedTo);
 
     @Update("""
             UPDATE news_article

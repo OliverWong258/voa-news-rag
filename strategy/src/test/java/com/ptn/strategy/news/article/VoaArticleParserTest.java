@@ -20,6 +20,7 @@ class VoaArticleParserTest {
                       "@context": "https://schema.org",
                       "@type": "NewsArticle",
                       "headline": "VOA test headline",
+                      "articleSection": ["Politics", "United States"],
                       "datePublished": "2026-07-11T08:30:00-04:00",
                       "author": {"@type": "Person", "name": "VOA Reporter"},
                       "articleBody": "This is the first paragraph of a sufficiently long VOA article. It contains enough text for parsing. This is the second paragraph with additional reporting details."
@@ -34,6 +35,7 @@ class VoaArticleParserTest {
         assertThat(article.author()).isEqualTo("VOA Reporter");
         assertThat(article.publishedAt()).isEqualTo(LocalDateTime.of(2026, 7, 11, 12, 30));
         assertThat(article.content()).startsWith("This is the first paragraph");
+        assertThat(article.category()).isEqualTo("Politics");
     }
 
     @Test
@@ -43,6 +45,7 @@ class VoaArticleParserTest {
                   <meta property="og:title" content="Fallback headline">
                   <meta name="author" content="VOA News">
                   <meta property="article:published_time" content="2026-07-11T12:00:00Z">
+                  <meta property="article:section" content="Africa">
                 </head><body>
                   <div class="wsw">
                     <p>This fallback paragraph contains the opening details of the news report and is deliberately long enough.</p>
@@ -56,6 +59,7 @@ class VoaArticleParserTest {
         assertThat(article.title()).isEqualTo("Fallback headline");
         assertThat(article.content()).contains("opening details", "more context");
         assertThat(article.publishedAt()).isEqualTo(LocalDateTime.of(2026, 7, 11, 12, 0));
+        assertThat(article.category()).isEqualTo("Africa");
     }
 
     @Test

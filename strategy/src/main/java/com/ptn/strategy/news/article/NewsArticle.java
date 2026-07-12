@@ -7,6 +7,7 @@ import lombok.Data;
 public class NewsArticle {
     private Long id;
     private String source;
+    private String category;
     private String sourceArticleId;
     private String url;
     private String canonicalUrl;
@@ -28,4 +29,6 @@ public class NewsArticle {
     private Integer indexingRetryCount;
     private String indexingError;
     private LocalDateTime indexedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

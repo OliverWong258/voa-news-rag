@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.ptn.strategy.config.AwsProperties;
 import com.ptn.strategy.news.article.ContentHasher;
@@ -18,6 +19,7 @@ import com.ptn.strategy.news.task.CrawlTaskMessage;
 import io.awspring.cloud.sqs.listener.Visibility;
 import io.awspring.cloud.sqs.operations.SqsTemplate;
 import java.time.LocalDateTime;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -49,7 +51,7 @@ class VoaCrawlConsumerTest {
         when(taskMapper.findById(42L)).thenReturn(task);
         when(rawHtmlStorage.load(task.getRawS3Key())).thenReturn("<html>snapshot</html>");
         when(parser.parse(anyString(), anyString())).thenReturn(new ParsedArticle(
-                "Title", "A sufficiently complete article body.", "VOA", LocalDateTime.now()));
+                "Title", "A sufficiently complete article body.", "VOA", LocalDateTime.now(), "Politics"));
         when(redis.opsForSet()).thenReturn(setOperations);
         when(setOperations.add(anyString(), anyString())).thenReturn(1L);
         when(articleMapper.insertIfAbsent(any())).thenAnswer(invocation -> {
@@ -79,7 +81,10 @@ class VoaCrawlConsumerTest {
 
         verify(pageFetcher, never()).fetch(anyString());
         verify(rawHtmlStorage).load("raw/voa/tasks/42.html");
-        verify(articleMapper).insertIfAbsent(any());
+        ArgumentCaptor<com.ptn.strategy.news.article.NewsArticle> articleCaptor =
+                ArgumentCaptor.forClass(com.ptn.strategy.news.article.NewsArticle.class);
+        verify(articleMapper).insertIfAbsent(articleCaptor.capture());
+        assertThat(articleCaptor.getValue().getCategory()).isEqualTo("Politics");
         verify(taskMapper).markCrawled(42L);
         verify(visibility).changeTo(300);
     }
