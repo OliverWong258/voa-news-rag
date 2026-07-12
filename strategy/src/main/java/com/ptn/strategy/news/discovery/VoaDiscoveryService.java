@@ -106,6 +106,7 @@ public class VoaDiscoveryService {
             CrawlTask task = new CrawlTask();
             task.setUrl(canonicalUrl);
             task.setCanonicalUrl(canonicalUrl);
+            task.setMaxRetries(awsProperties.sqs().maxReceiveCount());
 
             try {
                 if (crawlTaskMapper.insertIfAbsent(task) == 0) {

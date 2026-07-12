@@ -20,6 +20,8 @@ aws:
     process-queue: test-process-queue
     crawl-dlq: test-crawl-dlq
     process-dlq: test-process-dlq
+    visibility-timeout-seconds: 300
+    max-receive-count: 5
   s3:
     raw-content-bucket: test-raw-content
 
@@ -38,5 +40,8 @@ crawler:
   scheduler-enabled: false
   discovery-cron: "0 0/30 * * * *"
   max-links-per-run: 20
+  recovery-cron: "0 */10 * * * *"
+  stale-task-threshold: 15m
+  recovery-batch-size: 20
   seed-urls:
     - https://www.voanews.com/

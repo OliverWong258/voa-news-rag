@@ -2,6 +2,7 @@ package com.ptn.strategy.config;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -13,7 +14,9 @@ public record AwsProperties(@NotBlank String region, @Valid Sqs sqs, @Valid S3 s
             @NotBlank String crawlQueue,
             @NotBlank String processQueue,
             @NotBlank String crawlDlq,
-            @NotBlank String processDlq) {
+            @NotBlank String processDlq,
+            @Positive int visibilityTimeoutSeconds,
+            @Positive int maxReceiveCount) {
     }
 
     public record S3(@NotBlank String rawContentBucket) {

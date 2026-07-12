@@ -5,6 +5,9 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.Select;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Mapper
 public interface CrawlTaskMapper {
@@ -13,7 +16,7 @@ public interface CrawlTaskMapper {
             INSERT IGNORE INTO crawl_task
                 (url, canonical_url, task_type, status, retry_count, max_retries)
             VALUES
-                (#{url}, #{canonicalUrl}, 'ARTICLE', 'PENDING', 0, 5)
+                (#{url}, #{canonicalUrl}, 'ARTICLE', 'PENDING', 0, #{maxRetries})
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insertIfAbsent(CrawlTask task);
@@ -57,4 +60,38 @@ public interface CrawlTaskMapper {
             WHERE id = #{id} AND status = 'CRAWLING'
             """)
     int markFailed(@Param("id") long id, @Param("errorMessage") String errorMessage);
+
+    @Select("SELECT * FROM crawl_task WHERE id = #{id}")
+    CrawlTask findById(@Param("id") long id);
+
+    @Select("""
+            SELECT * FROM crawl_task
+            WHERE status = 'CRAWLING' AND started_at < #{cutoff}
+            ORDER BY started_at
+            LIMIT #{limit}
+            """)
+    List<CrawlTask> findStaleCrawling(
+            @Param("cutoff") LocalDateTime cutoff, @Param("limit") int limit);
+
+    @Update("""
+            UPDATE crawl_task
+            SET status = 'RETRYING', worker_id = NULL,
+                error_message = 'Recovered stale CRAWLING task'
+            WHERE id = #{id} AND status = 'CRAWLING' AND started_at < #{cutoff}
+            """)
+    int markRetryingIfStale(@Param("id") long id, @Param("cutoff") LocalDateTime cutoff);
+
+    @Update("""
+            UPDATE crawl_task
+            SET status = 'RETRYING', worker_id = NULL, error_message = NULL, retry_count = 0
+            WHERE id = #{id} AND status IN ('FAILED', 'DEAD')
+            """)
+    int markRetrying(@Param("id") long id);
+
+    @Update("""
+            UPDATE crawl_task
+            SET status = 'FAILED', error_message = LEFT(#{errorMessage}, 4000)
+            WHERE id = #{id} AND status = 'RETRYING'
+            """)
+    int markRedispatchFailed(@Param("id") long id, @Param("errorMessage") String errorMessage);
 }

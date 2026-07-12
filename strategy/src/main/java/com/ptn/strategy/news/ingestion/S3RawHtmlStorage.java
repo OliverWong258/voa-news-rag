@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 @Component
 public class S3RawHtmlStorage implements RawHtmlStorage {
@@ -28,5 +29,14 @@ public class S3RawHtmlStorage implements RawHtmlStorage {
                 .build();
         s3Client.putObject(request, RequestBody.fromBytes(html.getBytes(StandardCharsets.UTF_8)));
         return key;
+    }
+
+    @Override
+    public String load(String key) {
+        GetObjectRequest request = GetObjectRequest.builder()
+                .bucket(awsProperties.s3().rawContentBucket())
+                .key(key)
+                .build();
+        return s3Client.getObjectAsBytes(request).asString(StandardCharsets.UTF_8);
     }
 }

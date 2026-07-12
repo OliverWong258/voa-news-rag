@@ -7,13 +7,17 @@ import com.ptn.strategy.news.article.ParsedArticle;
 import com.ptn.strategy.news.article.VoaArticleParser;
 import com.ptn.strategy.news.task.CrawlTaskMapper;
 import com.ptn.strategy.news.task.CrawlTaskMessage;
+import com.ptn.strategy.news.task.CrawlTask;
+import com.ptn.strategy.news.task.TaskExhaustedException;
 import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.listener.Visibility;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+import com.ptn.strategy.config.AwsProperties;
 
 @Slf4j
 @Component
@@ -29,6 +33,7 @@ public class VoaCrawlConsumer {
     private final StringRedisTemplate redisTemplate;
     private final NewsArticleMapper newsArticleMapper;
     private final CrawlTaskMapper crawlTaskMapper;
+    private final AwsProperties awsProperties;
     private final String workerId = resolveWorkerId();
 
     public VoaCrawlConsumer(
@@ -38,7 +43,8 @@ public class VoaCrawlConsumer {
             ContentHasher contentHasher,
             StringRedisTemplate redisTemplate,
             NewsArticleMapper newsArticleMapper,
-            CrawlTaskMapper crawlTaskMapper) {
+            CrawlTaskMapper crawlTaskMapper,
+            AwsProperties awsProperties) {
         this.pageFetcher = pageFetcher;
         this.rawHtmlStorage = rawHtmlStorage;
         this.articleParser = articleParser;
@@ -46,19 +52,36 @@ public class VoaCrawlConsumer {
         this.redisTemplate = redisTemplate;
         this.newsArticleMapper = newsArticleMapper;
         this.crawlTaskMapper = crawlTaskMapper;
+        this.awsProperties = awsProperties;
     }
 
-    @SqsListener("${aws.sqs.crawl-queue}")
-    public void consume(CrawlTaskMessage message) {
+    @SqsListener(
+            queueNames = "${aws.sqs.crawl-queue}",
+            messageVisibilitySeconds = "${aws.sqs.visibility-timeout-seconds}")
+    public void consume(CrawlTaskMessage message, Visibility visibility) {
         if (crawlTaskMapper.claimForCrawling(message.taskId(), workerId) == 0) {
+            CrawlTask existing = crawlTaskMapper.findById(message.taskId());
+            if (existing != null && existing.getStatus() == com.ptn.strategy.news.task.TaskStatus.DEAD) {
+                throw new TaskExhaustedException(message.taskId());
+            }
             log.info("Ignoring duplicate or non-runnable crawl task {}", message.taskId());
             return;
         }
 
         try {
-            String html = pageFetcher.fetch(message.canonicalUrl());
-            String rawS3Key = rawHtmlStorage.store(message.taskId(), html);
-            crawlTaskMapper.recordRawSnapshot(message.taskId(), rawS3Key);
+            CrawlTask task = crawlTaskMapper.findById(message.taskId());
+            String rawS3Key = task == null ? null : task.getRawS3Key();
+            String html;
+            if (rawS3Key == null || rawS3Key.isBlank()) {
+                html = pageFetcher.fetch(message.canonicalUrl());
+                visibility.changeTo(visibilityTimeoutSeconds());
+                rawS3Key = rawHtmlStorage.store(message.taskId(), html);
+                crawlTaskMapper.recordRawSnapshot(message.taskId(), rawS3Key);
+            } else {
+                html = rawHtmlStorage.load(rawS3Key);
+                log.info("Replaying crawl task {} from S3 snapshot {}", message.taskId(), rawS3Key);
+            }
+            visibility.changeTo(visibilityTimeoutSeconds());
             ParsedArticle parsed = articleParser.parse(message.canonicalUrl(), html);
             String contentHash = contentHasher.sha256(parsed.content());
 
@@ -83,6 +106,10 @@ public class VoaCrawlConsumer {
             log.error("VOA crawl task {} failed", message.taskId(), exception);
             throw exception;
         }
+    }
+
+    private int visibilityTimeoutSeconds() {
+        return awsProperties.sqs().visibilityTimeoutSeconds();
     }
 
     private NewsArticle toNewsArticle(
