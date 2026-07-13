@@ -24,6 +24,14 @@ function isApiError(value: unknown): value is ApiError {
   )
 }
 
+export async function apiErrorFromResponse(response: Response): Promise<ApiRequestError> {
+  const body: unknown = await response.json().catch(() => null)
+  if (isApiError(body)) {
+    return new ApiRequestError(body.message, body.status, body.code, body.path)
+  }
+  return new ApiRequestError(response.statusText || '请求失败', response.status)
+}
+
 export async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
     ...init,
@@ -34,13 +42,8 @@ export async function requestJson<T>(input: RequestInfo | URL, init?: RequestIni
   })
 
   if (!response.ok) {
-    const body: unknown = await response.json().catch(() => null)
-    if (isApiError(body)) {
-      throw new ApiRequestError(body.message, body.status, body.code, body.path)
-    }
-    throw new ApiRequestError(response.statusText || '请求失败', response.status)
+    throw await apiErrorFromResponse(response)
   }
 
   return response.json() as Promise<T>
 }
-
