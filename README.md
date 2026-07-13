@@ -4,7 +4,7 @@ An automated VOA news collection, Chinese translation, semantic search, and AI-p
 
 The system continuously discovers and processes articles from the VOA website, translates English content into Chinese, and builds a vector index. Users can browse articles like a traditional news website or search and ask questions using natural language.
 
-<img src="docs/assets/homepage"
+<img src="docs/assets/homepage.png"
      alt="Homepage preview"
      width="800">
 
