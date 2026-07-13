@@ -4,6 +4,7 @@ import { PlaceholderPage } from '../pages/PlaceholderPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ArticlesPage } from '../pages/ArticlesPage'
 import { ArticleDetailPage } from '../pages/ArticleDetailPage'
+import { SearchPage } from '../pages/SearchPage'
 
 export const router = createBrowserRouter([
   {
@@ -20,12 +21,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'search',
-        element: (
-          <PlaceholderPage
-            title="智能搜索"
-            description="通过语义搜索定位相关新闻与文本片段。"
-          />
-        ),
+        element: <SearchPage />,
       },
       {
         path: 'ask',
